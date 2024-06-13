@@ -2,10 +2,16 @@ import os
 import sys
 import mimetypes
 import argparse
+from pydub import AudioSegment
+from pydub.silence import split_on_silence
+from datetime import timedelta
 
 def is_valid_audio_file(file_path):
     mime_type, _ = mimetypes.guess_type(file_path)
     return mime_type and mime_type.startswith('audio')
+
+def format_time(milliseconds):
+    return str(timedelta(milliseconds=milliseconds))
 
 def main():
     parser = argparse.ArgumentParser(description='Split a long audio file into individual songs.')
@@ -22,10 +28,14 @@ def main():
     min_silence_duration = args.min_silence_duration
     chunk_size = args.chunk_size
     output_format = args.output_format
+
+    print(f"Checking if file exists: {audio_file_path}")
     
     if not os.path.isfile(audio_file_path):
         print("Input file not found")
         sys.exit(1)
+    
+    print(f"Checking if valid audio file: {audio_file_path}")
     
     if not is_valid_audio_file(audio_file_path):
         print("Invalid input file format")
@@ -36,6 +46,35 @@ def main():
     print(f"Minimum silence duration: {min_silence_duration}")
     print(f"Chunk size: {chunk_size}")
     print(f"Output format: {output_format}")
+
+    # Load audio file
+    audio = AudioSegment.from_file(audio_file_path)
+    
+    # Split on silence
+    chunks = split_on_silence(
+        audio,
+        min_silence_len=min_silence_duration,
+        silence_thresh=silence_threshold
+    )
+
+    # Generate report
+    report = []
+    current_time = 0
+    for i, chunk in enumerate(chunks):
+        start_time = current_time
+        end_time = start_time + len(chunk)
+        duration = len(chunk)
+        report.append({
+            'song': i + 1,
+            'start': format_time(start_time),
+            'end': format_time(end_time),
+            'duration': format_time(duration)
+        })
+        current_time = end_time
+
+    print("\nSong Report:")
+    for song in report:
+        print(f"Song {song['song']}: Start = {song['start']}, End = {song['end']}, Duration = {song['duration']}")
 
 if __name__ == "__main__":
     main()
