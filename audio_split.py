@@ -13,13 +13,15 @@ def main():
     parser.add_argument('--silence_threshold', type=float, default=-50, help='Threshold below which is considered silence.')
     parser.add_argument('--min_silence_duration', type=int, default=1000, help='Minimum duration of silence (in milliseconds) to be considered a break between songs.')
     parser.add_argument('--chunk_size', type=int, default=100, help='Chunk size (in milliseconds) for analysis when scanning for silence.')
-    
+    parser.add_argument('--output_format', type=str, choices=['wav', 'mp3', 'ogg'], default='wav', help='Output file format for individual audio files.')
+
     args = parser.parse_args()
     
     audio_file_path = args.input_file
     silence_threshold = args.silence_threshold
     min_silence_duration = args.min_silence_duration
     chunk_size = args.chunk_size
+    output_format = args.output_format
     
     if not os.path.isfile(audio_file_path):
         print("Input file not found")
@@ -33,6 +35,7 @@ def main():
     print(f"Silence threshold: {silence_threshold}")
     print(f"Minimum silence duration: {min_silence_duration}")
     print(f"Chunk size: {chunk_size}")
+    print(f"Output format: {output_format}")
 
 if __name__ == "__main__":
     main()

@@ -28,6 +28,7 @@ class TestAudioSplit(unittest.TestCase):
         self.assertIn("Silence threshold: -50", result.stdout)
         self.assertIn("Minimum silence duration: 1000", result.stdout)
         self.assertIn("Chunk size: 100", result.stdout)
+        self.assertIn("Output format: wav", result.stdout)
         
         os.remove(valid_audio_path)
 
@@ -37,11 +38,12 @@ class TestAudioSplit(unittest.TestCase):
         with open(valid_audio_path, 'w') as f:
             f.write("RIFF....WAVEfmt ")  # Mocking a minimal WAV file header
         
-        result = subprocess.run(['python', 'audio_split.py', valid_audio_path, '--silence_threshold', '-30', '--min_silence_duration', '1500', '--chunk_size', '200'], capture_output=True, text=True)
+        result = subprocess.run(['python', 'audio_split.py', valid_audio_path, '--silence_threshold', '-30', '--min_silence_duration', '1500', '--chunk_size', '200', '--output_format', 'mp3'], capture_output=True, text=True)
         self.assertIn(f"Input file path: {valid_audio_path}", result.stdout)
         self.assertIn("Silence threshold: -30", result.stdout)
         self.assertIn("Minimum silence duration: 1500", result.stdout)
         self.assertIn("Chunk size: 200", result.stdout)
+        self.assertIn("Output format: mp3", result.stdout)
         
         os.remove(valid_audio_path)
     
@@ -72,6 +74,16 @@ class TestAudioSplit(unittest.TestCase):
         
         result = subprocess.run(['python', 'audio_split.py', valid_audio_path, '--chunk_size', 'invalid_chunk_size'], capture_output=True, text=True)
         self.assertIn("argument --chunk_size: invalid int value: 'invalid_chunk_size'", result.stderr)
+        
+        os.remove(valid_audio_path)
+
+    def test_invalid_output_format(self):
+        valid_audio_path = 'test_audio.mp3'
+        with open(valid_audio_path, 'w') as f:
+            f.write("RIFF....WAVEfmt ")  # Mocking a minimal WAV file header
+        
+        result = subprocess.run(['python', 'audio_split.py', valid_audio_path, '--output_format', 'invalid_format'], capture_output=True, text=True)
+        self.assertIn("argument --output_format: invalid choice: 'invalid_format'", result.stderr)
         
         os.remove(valid_audio_path)
 
