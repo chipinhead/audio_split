@@ -50,6 +50,8 @@ def main():
     # Load audio file
     audio = AudioSegment.from_file(audio_file_path)
     
+    print(f"Audio length: {len(audio)} milliseconds")
+    
     # Split on silence
     chunks = split_on_silence(
         audio,
@@ -70,11 +72,18 @@ def main():
             'end': format_time(end_time),
             'duration': format_time(duration)
         })
+        print(f"Chunk {i+1}: Start = {start_time}ms, End = {end_time}ms, Duration = {duration}ms")  # Intermediate log
         current_time = end_time
 
     print("\nSong Report:")
     for song in report:
         print(f"Song {song['song']}: Start = {song['start']}, End = {song['end']}, Duration = {song['duration']}")
+    
+    # Save chunks
+    for i, chunk in enumerate(chunks):
+        output_file = f"{os.path.splitext(audio_file_path)[0]}_chunk_{i + 1}.{output_format}"
+        print(f"Exporting chunk {i+1} to {output_file}")
+        chunk.export(output_file, format=output_format)
 
 if __name__ == "__main__":
     main()
