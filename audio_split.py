@@ -29,28 +29,16 @@ def main():
     chunk_size = args.chunk_size
     output_format = args.output_format
 
-    print(f"Checking if file exists: {audio_file_path}")
-    
     if not os.path.isfile(audio_file_path):
         print("Input file not found")
         sys.exit(1)
     
-    print(f"Checking if valid audio file: {audio_file_path}")
-    
     if not is_valid_audio_file(audio_file_path):
         print("Invalid input file format")
         sys.exit(1)
-    
-    print(f"Input file path: {audio_file_path}")
-    print(f"Silence threshold: {silence_threshold}")
-    print(f"Minimum silence duration: {min_silence_duration}")
-    print(f"Chunk size: {chunk_size}")
-    print(f"Output format: {output_format}")
 
     # Load audio file
     audio = AudioSegment.from_file(audio_file_path)
-    
-    print(f"Audio length: {len(audio)} milliseconds")
     
     # Detect silence intervals
     silence_intervals = detect_silence(
@@ -58,7 +46,6 @@ def main():
         min_silence_len=min_silence_duration,
         silence_thresh=silence_threshold
     )
-    print(f"Detected silence intervals: {silence_intervals}")
     
     # Calculate start and end points
     start_end_points = []
@@ -69,13 +56,11 @@ def main():
         previous_end = end
     if previous_end < len(audio):
         start_end_points.append((previous_end, len(audio)))
-    
-    print(f"Calculated start and end points: {start_end_points}")
 
     # Generate chunks
     chunks = [audio[start:end] for start, end in start_end_points]
 
-    # Generate report
+    # Generate report and export chunks
     report = []
     for i, (start, end) in enumerate(start_end_points):
         duration = end - start
@@ -85,17 +70,13 @@ def main():
             'end': format_time(end),
             'duration': format_time(duration)
         })
-        print(f"Chunk {i+1}: Start = {start}ms, End = {end}ms, Duration = {duration}ms")  # Intermediate log
+        chunk_number = f"{i + 1:02}"
+        output_file = f"{os.path.splitext(audio_file_path)[0]}{chunk_number}.{output_format}"
+        chunks[i].export(output_file, format=output_format)
 
     print("\nSong Report:")
     for song in report:
         print(f"Song {song['song']}: Start = {song['start']}, End = {song['end']}, Duration = {song['duration']}")
-    
-    # Save chunks
-    for i, chunk in enumerate(chunks):
-        output_file = f"{os.path.splitext(audio_file_path)[0]}_chunk_{i + 1}.{output_format}"
-        print(f"Exporting chunk {i+1} to {output_file}")
-        chunk.export(output_file, format=output_format)
 
 if __name__ == "__main__":
     main()

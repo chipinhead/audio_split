@@ -2,7 +2,6 @@ import unittest
 import subprocess
 import os
 from pydub import AudioSegment
-from unittest.mock import patch
 
 class TestAudioSplit(unittest.TestCase):
     @classmethod
@@ -10,13 +9,19 @@ class TestAudioSplit(unittest.TestCase):
         # Create a small MP3 file for testing
         cls.test_audio_path = 'test_audio.mp3'
         silent_segment = AudioSegment.silent(duration=10000)  # 10 seconds of silence
-        silent_segment.export(cls.test_audio_path, format="mp3")
+        with open(cls.test_audio_path, 'wb') as f:
+            silent_segment.export(f, format="mp3")
 
     @classmethod
     def tearDownClass(cls):
-        # Remove the test MP3 file after tests
+        # Remove the test MP3 file and any generated chunks after tests
         if os.path.exists(cls.test_audio_path):
             os.remove(cls.test_audio_path)
+        for i in range(1, 21):  # Assuming a max of 20 chunks for cleanup
+            for fmt in ['wav', 'mp3', 'ogg']:
+                chunk_file = f"test_audio{i:02}.{fmt}"
+                if os.path.exists(chunk_file):
+                    os.remove(chunk_file)
 
     def test_file_not_found(self):
         result = subprocess.run(['python3', 'audio_split.py', 'non_existent_file.mp3'], capture_output=True, text=True)
@@ -36,12 +41,9 @@ class TestAudioSplit(unittest.TestCase):
         result = subprocess.run(['python3', 'audio_split.py', self.test_audio_path], capture_output=True, text=True)
         print("STDOUT:", result.stdout)
         print("STDERR:", result.stderr)
-        self.assertIn(f"Input file path: {self.test_audio_path}", result.stdout)
-        self.assertIn("Silence threshold: -50", result.stdout)
-        self.assertIn("Minimum silence duration: 1000", result.stdout)
-        self.assertIn("Chunk size: 100", result.stdout)
-        self.assertIn("Output format: wav", result.stdout)
         self.assertIn("Song Report:", result.stdout)
+        self.assertTrue(os.path.exists('test_audio01.wav'))
+        self.assertTrue(os.path.exists('test_audio02.wav'))
 
     def test_invalid_silence_threshold(self):
         result = subprocess.run(['python3', 'audio_split.py', self.test_audio_path, '--silence_threshold', 'invalid_threshold'], capture_output=True, text=True)
