@@ -3,7 +3,7 @@ import sys
 import mimetypes
 import argparse
 from pydub import AudioSegment
-from pydub.silence import split_on_silence
+from pydub.silence import detect_silence
 from datetime import timedelta
 
 def is_valid_audio_file(file_path):
@@ -52,28 +52,40 @@ def main():
     
     print(f"Audio length: {len(audio)} milliseconds")
     
-    # Split on silence
-    chunks = split_on_silence(
+    # Detect silence intervals
+    silence_intervals = detect_silence(
         audio,
         min_silence_len=min_silence_duration,
         silence_thresh=silence_threshold
     )
+    print(f"Detected silence intervals: {silence_intervals}")
+    
+    # Calculate start and end points
+    start_end_points = []
+    previous_end = 0
+    for start, end in silence_intervals:
+        if start != previous_end:
+            start_end_points.append((previous_end, start))
+        previous_end = end
+    if previous_end < len(audio):
+        start_end_points.append((previous_end, len(audio)))
+    
+    print(f"Calculated start and end points: {start_end_points}")
+
+    # Generate chunks
+    chunks = [audio[start:end] for start, end in start_end_points]
 
     # Generate report
     report = []
-    current_time = 0
-    for i, chunk in enumerate(chunks):
-        start_time = current_time
-        end_time = start_time + len(chunk)
-        duration = len(chunk)
+    for i, (start, end) in enumerate(start_end_points):
+        duration = end - start
         report.append({
             'song': i + 1,
-            'start': format_time(start_time),
-            'end': format_time(end_time),
+            'start': format_time(start),
+            'end': format_time(end),
             'duration': format_time(duration)
         })
-        print(f"Chunk {i+1}: Start = {start_time}ms, End = {end_time}ms, Duration = {duration}ms")  # Intermediate log
-        current_time = end_time
+        print(f"Chunk {i+1}: Start = {start}ms, End = {end}ms, Duration = {duration}ms")  # Intermediate log
 
     print("\nSong Report:")
     for song in report:
