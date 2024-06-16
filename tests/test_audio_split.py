@@ -2,15 +2,23 @@ import unittest
 import subprocess
 import os
 from pydub import AudioSegment
+from pydub.generators import Sine
 
 class TestAudioSplit(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Create a small MP3 file for testing
+        # Create a test MP3 file with 1s silence, 2s tone, 1s silence, 2s tone, 1s silence
         cls.test_audio_path = 'test_audio.mp3'
-        silent_segment = AudioSegment.silent(duration=10000)  # 10 seconds of silence
-        with open(cls.test_audio_path, 'wb') as f:
-            silent_segment.export(f, format="mp3")
+        silent_segment = AudioSegment.silent(duration=1000)  # 1 second of silence
+        tone_segment = Sine(440).to_audio_segment(duration=2000)  # 2 seconds of tone
+        audio = silent_segment + tone_segment + silent_segment + tone_segment + silent_segment
+        audio.export(cls.test_audio_path, format="mp3")
+
+        # Verify the file can be opened and played
+        try:
+            audio = AudioSegment.from_file(cls.test_audio_path)
+        except Exception as e:
+            raise RuntimeError(f"Error opening test audio file: {e}")
 
     @classmethod
     def tearDownClass(cls):
@@ -39,8 +47,7 @@ class TestAudioSplit(unittest.TestCase):
 
     def test_valid_audio_file_default_parameters(self):
         result = subprocess.run(['python3', 'audio_split.py', self.test_audio_path], capture_output=True, text=True)
-        print("STDOUT:", result.stdout)
-        print("STDERR:", result.stderr)
+
         self.assertIn("Song Report:", result.stdout)
         self.assertTrue(os.path.exists('test_audio01.wav'))
         self.assertTrue(os.path.exists('test_audio02.wav'))
